@@ -2,6 +2,7 @@
 
 #functions to use in the analyses
 
+#---------------code----------------------------------------
 # Downloading daymet climate data 1994-2023 ####
 
 get_daymet <- function(temp_lat,temp_lon){
@@ -60,6 +61,7 @@ return(monthly_precip_temp_slope)
 
 
 
+#-----------------------------------------------------------
 # Get initial sites list ----
 
 sites_filtered_function <- function(){
@@ -78,6 +80,7 @@ sites_filtered <- sites %>%
 }
 
 
+#-----------------------------------------------------------
 # function to create raster stack from large dataframe ####
 create_raster <- function(data,var){
   
@@ -130,3 +133,4 @@ create_raster <- function(data,var){
   return(df_trimmed_raster_resampled_masked)
   
 }
+#---------------done----------------------------------------

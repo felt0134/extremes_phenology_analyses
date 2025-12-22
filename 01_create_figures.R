@@ -1,10 +1,10 @@
 
 #code for making main figures
 
-source('Functions.R')
-library(tidyverse)
-library(terra)
-library(scico)
+#load packages
+library_vector <- c('tidyverse','terra','scico')
+lapply(library_vector,library,character.only = TRUE)
+rm(library_vector)
 
 #---------------code----------------------------------------
 #### make plot for cross-biome analysis of phenocam greenness data ####
@@ -185,6 +185,7 @@ rm(look,metadata,phenocam_drought_phenology_db_gr_temperate,summary_table,
    phenocam_summary_table)
 
 #-----------------------------------------------------------
+
 #### make plot for single-site central MT, USA drought impact ####
 
 #import
@@ -377,7 +378,14 @@ dev.off()
 #                    annual_precip = sum(prcp..mm.day.)) %>% 
 #   summary()
 
+#remove
+rm(ap_mean,ap_monthly_precip,ap_npp_data,ap_npp_impact,ap_precip_temp,
+   ap_temp_anom_plot_inset,ap_temp_summaries,ap_weather_2017,vp,vp_2,
+   ap_drought_anom_plot,ap_drought_barplot,ap_drought_phenology_plot,
+   ap_gpp_data)
+
 #-----------------------------------------------------------
+
 #### make plot for single-site northern CO, USA drought impact ####
 
 #import
@@ -396,11 +404,6 @@ cper_mean <- cper_gpp_data %>%
   dplyr::left_join(cper_mean,join_by(doy)) %>%
   dplyr::mutate(gpp_dev = gpp_mean - mean_gpp) %>%
   dplyr::mutate(Month = lubridate::month(calendar_date))
-
-#quick look
-# plot(gpp_dev ~ doy,data = sgs_mean)
-# lines(gpp_dev ~ doy,data = sgs_mean)
-# abline(a = 0,b = 0)
 
 # make a nice ggplot of this
 cper_drought_anom_plot <- 
@@ -614,102 +617,25 @@ full_3()
 
 dev.off()
 
+#remove
+rm(cper_drought_anom_plot,cper_drought_barplot,cper_drought_phenology_plot,
+   cper_gcc_data,cper_gcc_data,cper_mean,cper_monthly_precip,cper_npp_data,
+   cper_npp_impact,cper_precip_temp_data,cper_temp_anom_plot_inset,
+   cper_temp_summaries,cper_weather_2022,dry_normal_years,vp,vp_2,vp_3,
+   cper_gcc_plot,cper_gpp_data,full,full_2,full_3)
+
 #-----------------------------------------------------------
+
 #### make plots for entire northern great plains ecoregion ####
 
-#land cover data
-igbp_grasslands <- readRDS("data/ngp/blake/Filtering_Drought_Set.rds")
+#import raster stack
+ngp_stack <- terra::rast('data/ngp/ngp_raster_stack.tif')
 
-#import minimum year df and select to core vars so it is an xyz
-minimum_year_df <- readRDS("data/ngp/Minimum_Year_Values.rds") %>%
-  dplyr::select(x,y,season) %>%
-  dplyr::filter(season == 'spring') #doesn't matter season, just want consistent set of points on a regular grid
-
-#filter to drier portions of the ecoregion 
-master_df <- readRDS("data/ngp/blake/Master_Raster (7).rds") %>%
-  dplyr::filter(mean_precip < 700)
-
-#function to create rasters from these datasets
-create_raster <- function(data,var){
-  
-  #trim to single var so it is an xyz and join to a dataset known to be on a regular grid
-  df_trimmed <- master_df %>% select(x,y,var) %>%
-    dplyr::right_join(minimum_year_df,join_by(x,y),
-                      relationship = "many-to-many") %>%
-    dplyr::select(x,y,var) %>%
-    na.omit()
-  
-  #create a spatvector object
-  df_trimmed_points <- vect(df_trimmed, geom = c("x", "y"), crs = "EPSG:4326")
-  
-  # Create empty raster grid (0.023 degrees = ~2.56 km)
-  df_trimmed_template <- rast(ext(df_trimmed_points), resolution = 0.023, crs = "EPSG:4326")
-  
-  # Rasterize each subset
-  df_trimmed_raster <- rasterize(df_trimmed_points, df_trimmed_template, field = var, fun = "mean")
-  
-  #now final mask by land cover
-  igbp_points <- vect(igbp_grasslands, geom = c("x", "y"), crs = "EPSG:4326")
-  
-  # Define resolution (e.g., 0.01 degrees ~ 1km)
-  
-  # Create empty raster template
-  igbp_template <- rast(ext(igbp_points), resolution = 0.023, crs = "EPSG:4326")
-  
-  # Rasterize the points using the 'value' column
-  igbp_grasslands <- rasterize(igbp_points, igbp_template, field = "Ground_Type", fun = "mean")
-  
-  #filter to just grasslands 
-  igbp_grasslands <- ifel(igbp_grasslands$mean == 10,igbp_grasslands,NA)
-  
-  df_trimmed_raster_resampled <- terra::resample(df_trimmed_raster,igbp_grasslands,'bilinear')
-  
-  #mask (AKA filter) gpp pixels by which pixels are grasslands
-  df_trimmed_raster_resampled_masked <- terra::mask(df_trimmed_raster_resampled,igbp_grasslands)
-  
-  #albers conic projection
-  Albers <-
-    crs(
-      '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96
-       +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'
-    )
-  
-  #reproject gpp raster to albers conic projection
-  df_trimmed_raster_resampled_masked <-
-    terra::project(df_trimmed_raster_resampled_masked,Albers,'bilinear')
-  
-  return(df_trimmed_raster_resampled_masked)
-  
-}
-
-#variables to loop through
-column_vec <- colnames(master_df[3:length(colnames(master_df))])
-
-#list to store raster outputs
-temp_raster_list <- list()
-
-#loop
-for(i in column_vec){
-  
-  temp_raster <- create_raster(master_df,i)
-  
-  temp_raster_list[[i]] <- temp_raster
-  
-}
-
-#check
-plot(temp_raster_list[[15]])
-
-#stack all rasters int he list into one multi-band raster
-ngp_stack <- terra::rast(temp_raster_list)
-
+#conver to spring and summer dataframes for plotting
 ngp_spring <- as.data.frame(ngp_stack$percent_change_spring,xy = TRUE)
 ngp_spring$season <- 'Spring'
 ngp_summer <- as.data.frame(ngp_stack$percent_change_summer,xy = TRUE)
 ngp_summer$season <- 'Summer'
-
-
-#plot it: main map
 
 #albers conic projection
 Albers <-
@@ -773,11 +699,10 @@ dev.off()
 
 ngp_df <- as.data.frame(ngp_stack,xy=T) %>%
   dplyr::mutate(drought_sens = (((mean_npp - drought_npp)/mean_npp)*100)/(mean_precip - drought_precip)) %>%
-  dplyr::mutate(drought_sens_abs = ((mean_npp - drought_npp))/(mean_precip - drought_precip)) %>%
-  filter(mean_precip <= 700) #consider better filtering criteria for MAP
+  dplyr::mutate(drought_sens_abs = ((mean_npp - drought_npp))/(mean_precip - drought_precip))
 
 #see if abs and rel estimates are correlated
-plot(ngp_df $drought_sens,ngp_df $drought_sens_abs)
+#plot(ngp_df$drought_sens,ngp_df $drought_sens_abs)
 #they are very correlated
 
 #see how many pixels have 'increased spring with decreases summer gpp
@@ -831,8 +756,8 @@ comp_inset <-
   )
 
 #compare spatial variabilty in spring versus summer responses
-sd(final_ngp$percent_change_spring)
-sd(final_ngp$percent_change_summer)
+sd(ngp_df$percent_change_spring)
+sd(ngp_df$percent_change_summer)
 
 #filter to when summer gpp is reduced ot isolate spring effect
 compensation_look <- ngp_df %>%
@@ -840,7 +765,7 @@ compensation_look <- ngp_df %>%
   dplyr::mutate(compensation_abs = ((drought_spring_gpp - mean_spring_gpp) - (drought_summer_gpp - mean_summer_gpp))*.01) %>%
   dplyr::mutate(compensation_rel = percent_change_spring - percent_change_summer) %>%
   dplyr::mutate(compensation_abs_2 = abs(((drought_spring_gpp - mean_spring_gpp)/(drought_summer_gpp - mean_summer_gpp)))) %>%
-  dplyr::filter(compensation_abs_2 <= 2) %>% #right-truncate because values go into the thousands 
+  dplyr::filter(compensation_abs_2 <= 2) #right-truncate because values go into the thousands 
 
 #find value to truncate to for the figure 
 quantile(compensation_look$compensation_abs_2,0.99)
@@ -852,10 +777,8 @@ summary(ngp_df$percent_change_summer)
 sd(ngp_df$percent_change_spring)
 sd(ngp_df$percent_change_summer)
 
-hist(final_ngp$percent_change_spring,col='red')
-hist(final_ngp$percent_change_summer,add=TRUE,col='blue')
-
-quantile(compensation_look$compensation_abs_2,0.95)
+# hist(ngp_df$percent_change_spring,col='red')
+# hist(ngp_df$percent_change_summer,add=TRUE,col='blue')
 
 #correlation spring gpp change and annual npp change. Truncate to 95th quantile for visualizing
 npp_spring_gpp_plot <- 

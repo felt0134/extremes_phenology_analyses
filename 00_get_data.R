@@ -394,10 +394,11 @@ write.csv(site_gpp_cper_2,'data/sgs/sgs_modis_gpp_2.csv')
 
 
 #-----------------------------------------------------------
-# NGP raster stack? ----
+
+# Northern great plains raster stack ----
 
 #land cover data
-igbp_grasslands <- readRDS("data/ngp/blake/Filtering_Drought_Set.rds")
+igbp_grasslands <- readRDS("data/ngp/Filtering_Drought_Set.rds")
 
 #import minimum year df and select to core vars so it is an xyz
 minimum_year_df <- readRDS("data/ngp/Minimum_Year_Values.rds") %>%
@@ -405,61 +406,8 @@ minimum_year_df <- readRDS("data/ngp/Minimum_Year_Values.rds") %>%
   dplyr::filter(season == 'spring') #doesn't matter season, just want consistent set of points on a regular grid
 
 #filter to drier portions of the ecoregion 
-master_df <- readRDS("data/ngp/blake/Master_Raster (7).rds") %>%
+master_df <- readRDS("data/ngp/Master_Raster (7).rds") %>%
   dplyr::filter(mean_precip < 700)
-
-#function to create rasters from these datasets
-create_raster <- function(data,var){
-  
-  #trim to single var so it is an xyz and join to a dataset known to be on a regular grid
-  df_trimmed <- master_df %>% select(x,y,var) %>%
-    dplyr::right_join(minimum_year_df,join_by(x,y),
-                      relationship = "many-to-many") %>%
-    dplyr::select(x,y,var) %>%
-    na.omit()
-  
-  #create a spatvector object
-  df_trimmed_points <- vect(df_trimmed, geom = c("x", "y"), crs = "EPSG:4326")
-  
-  # Create empty raster grid (0.023 degrees = ~2.56 km)
-  df_trimmed_template <- rast(ext(df_trimmed_points), resolution = 0.023, crs = "EPSG:4326")
-  
-  # Rasterize each subset
-  df_trimmed_raster <- rasterize(df_trimmed_points, df_trimmed_template, field = var, fun = "mean")
-  
-  #now final mask by land cover
-  igbp_points <- vect(igbp_grasslands, geom = c("x", "y"), crs = "EPSG:4326")
-  
-  # Define resolution (e.g., 0.01 degrees ~ 1km)
-  
-  # Create empty raster template
-  igbp_template <- rast(ext(igbp_points), resolution = 0.023, crs = "EPSG:4326")
-  
-  # Rasterize the points using the 'value' column
-  igbp_grasslands <- rasterize(igbp_points, igbp_template, field = "Ground_Type", fun = "mean")
-  
-  #filter to just grasslands 
-  igbp_grasslands <- ifel(igbp_grasslands$mean == 10,igbp_grasslands,NA)
-  
-  df_trimmed_raster_resampled <- terra::resample(df_trimmed_raster,igbp_grasslands,'bilinear')
-  
-  #mask (AKA filter) gpp pixels by which pixels are grasslands
-  df_trimmed_raster_resampled_masked <- terra::mask(df_trimmed_raster_resampled,igbp_grasslands)
-  
-  #albers conic projection
-  Albers <-
-    crs(
-      '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96
-       +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'
-    )
-  
-  #reproject gpp raster to albers conic projection
-  df_trimmed_raster_resampled_masked <-
-    terra::project(df_trimmed_raster_resampled_masked,Albers,'bilinear')
-  
-  return(df_trimmed_raster_resampled_masked)
-  
-}
 
 #variables to loop through
 column_vec <- colnames(master_df[3:length(colnames(master_df))])
@@ -479,9 +427,15 @@ for(i in column_vec){
 #check
 #plot(temp_raster_list[[15]])
 
-#stack all rasters int he list into one multi-band raster
+#stack all rasters in the list into one multi-band raster
 ngp_stack <- terra::rast(temp_raster_list)
 
-terra::writeRaster(ngp_stack,'data/ngp/ngp_raster_stack')
+#save to file
+terra::writeRaster(ngp_stack,'data/ngp/ngp_raster_stack.tif')
+
+#remove
+rm(igbp_grasslands,master_df,minimum_year_df,ngp_stack,temp_raster,
+   temp_raster_list,column_vec,i)
+
 
 #---------------done----------------------------------------
