@@ -159,26 +159,28 @@ phenocam_summary_table <- phenocam_drought_phenology_db_gr_temperate %>%
 write.csv(phenocam_summary_table,'figures/phenocam_summary_table.csv')
 
 #take a look at add in site coordinate for final table
-look <- read.csv('figures/phenocam_summary_table.csv')
+#look <- read.csv('figures/phenocam_summary_table.csv')
 
 # look %>% group_by(vegetation) %>% 
 #   summarise(sites = length(vegetation))
 
 #add in site coordinates to the table
-summary_table <- read.csv('figures/phenocam_summary_table.csv')
-metadata <- read.csv('data/phenocam/metadata.csv') %>%
-  dplyr::select(site,lat,lon) %>%
-  dplyr::right_join(summary_table,join_by(site)) %>%
-  dplyr::mutate(MAP = round(MAP,2),
-                MAT = round(MAT,2))
-
-#take a look
-# metadata %>% group_by(vegetation) %>% 
-#   summarise(sites = length(vegetation))
-# mean(metadata$control_years)
-
-#save updated file
-write.csv(metadata,'figures/phenocam_summary_table.csv')
+# summary_table <- read.csv('figures/phenocam_summary_table.csv')
+# metadata <- read.csv('data/phenocam/metadata.csv') %>%
+#   dplyr::select(site,lat,lon) %>%
+#   dplyr::right_join(summary_table,join_by(site)) %>%
+#   dplyr::mutate(MAP = round(MAP,2),
+#                 MAT = round(MAT,2))
+# 
+# cor(metadata$)
+# 
+# #take a look
+# # metadata %>% group_by(vegetation) %>% 
+# #   summarise(sites = length(vegetation))
+# # mean(metadata$control_years)
+# 
+# #save updated file
+# write.csv(metadata,'figures/phenocam_summary_table.csv')
 
 #remove
 rm(look,metadata,phenocam_drought_phenology_db_gr_temperate,summary_table,
