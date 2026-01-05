@@ -1,13 +1,13 @@
 
 
-#functions to use in the analyses
+#custom functions used in the analyses
 
 #---------------code----------------------------------------
-# Downloading daymet climate data 1994-2023 ####
+# Downloading daymet climate data 1980-2023 ####
 
 get_daymet <- function(temp_lat,temp_lon){
 
-#use to get annual precip and temp for a subset of the data ----
+#use to get annual precip and temp for a subset of the data
 
 precip_temp <- daymetr::download_daymet(
   lat = temp_lat,

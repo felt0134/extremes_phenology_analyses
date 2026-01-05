@@ -4,7 +4,7 @@
 source('Functions.R')
 
 #libraries needed
-library_vector <- c('phenocamr','tidyverse','daymetr','terra')
+library_vector <- c('phenocamr','tidyverse','daymetr','terra','MODISTools')
 lapply(library_vector,library,character.only = TRUE)
 rm(library_vector)
 
