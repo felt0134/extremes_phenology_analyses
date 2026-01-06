@@ -633,7 +633,7 @@ rm(cper_drought_anom_plot,cper_drought_barplot,cper_drought_phenology_plot,
 #import raster stack
 ngp_stack <- terra::rast('data/ngp/ngp_raster_stack.tif')
 
-#conver to spring and summer dataframes for plotting
+#convert to spring and summer dataframes for plotting
 ngp_spring <- as.data.frame(ngp_stack$percent_change_spring,xy = TRUE)
 ngp_spring$season <- 'Spring'
 ngp_summer <- as.data.frame(ngp_stack$percent_change_summer,xy = TRUE)
@@ -641,7 +641,7 @@ ngp_summer$season <- 'Summer'
 
 #albers conic projection
 Albers <-
-  crs(
+  terra::crs(
     '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96
        +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'
   )
@@ -654,20 +654,27 @@ ngp_spring <- ngp_spring %>% rename(percent_change = percent_change_spring)
 ngp_summer <- ngp_summer %>% rename(percent_change = percent_change_summer)
 ngp_spring_summer <- rbind(ngp_spring,ngp_summer)
 
+#get the geopolitical boundaries for context in the map
+na <- geodata::gadm("GADM", country=c('USA','CAN'), level=1,download=TRUE)
+
+na <- na[na$NAME_1 %in% c("Montana","South Dakota","Wyoming",'Nebraska',
+                          "North Dakota","Alberta","Saskatchewan"),]
+
+na <- terra::project(na,Albers)
 
 
 ngp_spring_summer_plot <- ggplot(ngp_spring_summer) +
   geom_raster(aes(x = x, y = y, fill = percent_change)) +
   facet_wrap(~season) +
-  #geom_sf(data = filtered_states, fill = NA, color = "black", linewidth = 0.5) +
+  tidyterra::geom_spatvector(data=na,fill = NA, color = "black", linewidth = 0.5) +
   coord_sf(crs = Albers,
            xlim = c(-113, -98),
            ylim = c(40.2, 52),
            default_crs = sf::st_crs(4326)) +
-  scale_fill_scico(
+  scico::scale_fill_scico(
     name = "Change in gross primary productivity (%)",
-    palette = "roma",
-    direction = 1,
+    palette = "vik", #distinct blue versus red divergence for negative/positive
+    direction = -1,
     limits = c(-100, 100),
     midpoint = 0
   ) +
@@ -866,5 +873,9 @@ dev.off()
 # plot(compensation_look$mean_temp,compensation_look$drought_sens)
 # cor(compensation_look$mean_temp,compensation_look$drought_sens,method = 'spearman')
 
+#remove
+rm(comp_inset,compensation_look,na,ngp_comp_barplot,ngp_comp_plot,ngp_df,
+   ngp_spring,ngp_spring_summer,ngp_spring_summer_plot,
+   ngp_stack,ngp_summer,npp_spring_gpp_plot,vp,Albers,full)
 
 #---------------done----------------------------------------
