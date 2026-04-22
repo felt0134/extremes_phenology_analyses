@@ -6,6 +6,9 @@ library_vector <- c('tidyverse','terra','scico')
 lapply(library_vector,library,character.only = TRUE)
 rm(library_vector)
 
+# Install the specific version of ggplot2 needed for creating maps
+#remotes::install_version("ggplot2", version = "3.3.6")
+
 #---------------code----------------------------------------
 #### make plot for cross-biome analysis of phenocam greenness data ####
 
@@ -190,7 +193,6 @@ rm(look,metadata,phenocam_drought_phenology_db_gr_temperate,summary_table,
 
 #### make plot for single-site central MT, USA drought impact ####
 
-#import
 ap_gpp_data <- read.csv('data/ap/ap_modis_gpp_2.csv')
 #head(ap_gpp,1)
 
@@ -201,7 +203,7 @@ ap_mean <- ap_gpp_data %>%
   dplyr::group_by(doy) %>%
   dplyr::summarise(mean_gpp = mean(gpp_mean))
 
-#join with just 207 to calculate deviations from the mean
+#join with just 2017 to calculate deviations from the mean
 ap_mean <- ap_gpp_data %>%
   dplyr::filter(year == 2017) %>%
   dplyr::left_join(ap_mean,join_by(doy)) %>%
@@ -218,7 +220,7 @@ ap_drought_anom_plot <-
   scale_x_date(date_labels = "%b", breaks = "month") +
   ylab(
     expression("Drought impact to carbon uptake "(g~C~m^-2~'8 days'^-1))) +
-  annotate('text',x=as.Date("2017-04-23"), y=0.35, label="Long-term Average",size=3) +
+  annotate('text',x=as.Date("2017-04-23"), y=0.39, label="Long-term Average",size=3.5) +
   theme(
     axis.text.x = element_text(color = 'black', size = 11),
     axis.text.y = element_text(color = 'black', size = 11),
@@ -240,12 +242,13 @@ ap_drought_anom_plot <-
 #import
 ap_npp_data <- read.csv('data/ap/ap_modis_npp_2.csv')
 
+#mean and variability of all other years; can get 2017 NPP from dataframe
 ap_npp_data %>%
   dplyr::filter(!year %in% 2017) %>%
   dplyr::summarise(mean_npp = mean(npp),
                    sd = sd(npp))
 
-
+#dataframe of NPP mean versus 2017
 ap_npp_impact <- data.frame(
   
   npp = c(193.34,191.73),
@@ -257,16 +260,16 @@ ap_npp_impact <- data.frame(
 #make barplot of this for inset
 ap_drought_barplot <- 
   ggplot(ap_npp_impact , aes(x = trt, y = npp)) +
-  stat_summary(geom = 'bar',fun = 'mean',color='black') +
+  stat_summary(geom = 'bar',fun = 'mean',color='black',width=.7) +
   geom_errorbar(aes(ymin = npp - sd, 
                     ymax = npp + sd), width = 0.05) +
   scale_y_continuous(expand=c(0,0),limit = c(0,223)) +
   xlab("") +
-  ylab(bquote('Net primary productivity ('*'g C'~ m^-2*')')) +
+  ylab(bquote('NPP ('*'g C'~ m^-2*')')) +
   theme(
-    axis.text.x = element_text(color = 'black', size = 7),
-    axis.text.y = element_text(color = 'black', size = 8),
-    axis.title = element_text(color = 'black', size = 9),
+    axis.text.x = element_text(color = 'black', size = 8),
+    axis.text.y = element_text(color = 'black', size = 9),
+    axis.title = element_text(color = 'black', size = 11),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
     legend.title = element_blank(),
@@ -282,109 +285,28 @@ ap_drought_barplot <-
 
 #make inset plot
 #try to make inset
-vp <- grid::viewport(width = 0.44, height = 0.39, x = 0.77,y=0.78)
+vp <- grid::viewport(width = 0.4, height = 0.35, x = 0.79,y=0.78)
 
-#executing the inset, you create a function the utlizes all the previous code
-full <- function() {
+#executing the inset, you create a function the utilizes all the previous code
+full_ap <- function() {
   print(ap_drought_anom_plot)
   print(ap_drought_barplot, vp = vp)
 }
 
-ap_drought_phenology_plot <- full()
-
-#make the temp-precip anomaly inset
-
-#import precip-temp ata
-ap_precip_temp <- read.csv('data/ap/daymet_precip_temp_ap.csv')
-
-#2017 identified as driest year
-ap_weather_2017 <- ap_precip_temp %>%
-  dplyr::filter(year == 2017)
-
-ap_temp_summaries <- ap_precip_temp %>%
-  dplyr::filter(!year %in% 2017) %>%
-  dplyr::group_by(yday) %>%
-  dplyr::mutate(mean_temp = (tmax..deg.c. + tmin..deg.c.)/2) %>%
-  dplyr::summarise(mean_temp = mean(mean_temp),
-                   mean_precip = mean(prcp..mm.day.)) %>%
-  dplyr::left_join(ap_weather_2017[c('yday','tmax..deg.c.','prcp..mm.day.')],join_by(yday)) %>%
-  dplyr::mutate(temp_anamoly = tmax..deg.c. - mean_temp,
-                precip_anamoly = prcp..mm.day. - mean_precip)
-
-#monthly total precip anoms
-ap_monthly_precip <- ap_temp_summaries %>% 
-  group_by(month = lubridate::floor_date(as.Date(yday), 'month')) %>%
-  summarize(monthly_precip_anoms = sum(precip_anamoly))
-
-#slightly re-do this one
-ap_temp_anom_plot_inset <- 
-  ggplot(ap_temp_summaries, aes(x = as.Date(yday), y = temp_anamoly)) +
-  geom_hline(yintercept = 0) +
-  geom_line(linewidth=0.25,color='red') +
-  xlab("") +
-  scale_x_date(date_labels = "%b", breaks = "month") +
-  ylab(expression('Daily anomaly ('*~degree*C*')')) +
-  scale_y_continuous(sec.axis = sec_axis(~ . * 1, name = "Monthly anomaly (mm)")) +
-  geom_line(data = ap_monthly_precip,aes(x=as.Date(month),y = monthly_precip_anoms),
-            color='blue',linewidth=0.25) +
-  geom_point(data = ap_monthly_precip,aes(x=as.Date(month),y = monthly_precip_anoms),
-             size=.5,pch=19) +
-  theme(
-    axis.text.x = element_text(color = 'black', size = 5,angle = 30),
-    axis.text.y = element_text(color = 'black', size = 5),
-    axis.title.y.left = element_text(color = "red"),
-    axis.title.y.right = element_text(color = "blue"),
-    axis.ticks = element_line(color = 'black'),
-    legend.key = element_blank(),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 5),
-    legend.position = 'none',
-    strip.background = element_rect(fill = "white"),
-    strip.text = element_text(size = 15),
-    panel.background = element_rect(fill = NA),
-    panel.border = element_blank(),
-    axis.line.x = element_line(colour = "black"),
-    axis.line.y = element_line(colour = "black"))
-
-
-#insert second inset
-vp_2 <- grid::viewport(width = 0.35, height = 0.33, x = 0.27,y=0.26)
-
-#executing the inset, you create a function the utlizes all the previous code
-full_2 <- function() {
-  full()
-  print(ap_temp_anom_plot_inset , vp = vp_2)
-}
-
-full_2()
+ap_drought_phenology_plot <- full_ap()
 
 #save
 png(height = 1700,width=2100,res=300,'figures/nmp_drought_impact_inset.png')
 
-full_2()
+full_ap()
 
 dev.off()
 
-#quick estimate of 47% difference in 2017 versus mean
-# precip_look <- ap_precip_temp %>% group_by(year) %>% 
-#   summarise(annual_precip = sum(prcp..mm.day.)) 
-# 
-# (mean(precip_look$annual_precip)-175.57)/mean(precip_look$annual_precip)
-# 
-# 
-# #climate normals
-# precip_temp %>%
-#   dplyr::mutate(mean_daily_temp = (tmax..deg.c. + tmin..deg.c.)/2) %>%
-#   dplyr::group_by(year) %>%
-#   dplyr::summarise(annual_temp = mean(mean_daily_temp),
-#                    annual_precip = sum(prcp..mm.day.)) %>% 
-#   summary()
 
 #remove
-rm(ap_mean,ap_monthly_precip,ap_npp_data,ap_npp_impact,ap_precip_temp,
-   ap_temp_anom_plot_inset,ap_temp_summaries,ap_weather_2017,vp,vp_2,
-   ap_drought_anom_plot,ap_drought_barplot,ap_drought_phenology_plot,
-   ap_gpp_data)
+rm(ap_mean,ap_npp_data,ap_npp_impact,
+   vp,ap_drought_anom_plot,ap_drought_barplot,ap_drought_phenology_plot,
+   ap_gpp_data,full_ap)
 
 #-----------------------------------------------------------
 
@@ -394,7 +316,7 @@ rm(ap_mean,ap_monthly_precip,ap_npp_data,ap_npp_impact,ap_precip_temp,
 cper_gpp_data <- read.csv('data/sgs/sgs_modis_gpp_2.csv')
 #head(ap_gpp,1)
 
-#compare 2017 gpp to long-term mean gpp
+#compare 2022 gpp to long-term mean gpp
 cper_mean <- cper_gpp_data %>%
   dplyr::filter(year %in% 2000:2023) %>%
   dplyr::filter(!year %in% 2022) %>%
@@ -417,7 +339,7 @@ cper_drought_anom_plot <-
   scale_x_date(date_labels = "%b", breaks = "month") +
   ylab(
     expression("Drought impact to carbon uptake "(g~C~m^-2~'8 days'^-1))) +
-  annotate('text',x=as.Date("2022-06-23"), y=0.35, label="Long-term Average",size=3) +
+  annotate('text',x=as.Date("2022-06-23"), y=0.39, label="Long-term Average",size=3.5) +
   theme(
     axis.text.x = element_text(color = 'black', size = 11),
     axis.text.y = element_text(color = 'black', size = 11),
@@ -434,18 +356,18 @@ cper_drought_anom_plot <-
     axis.line.x = element_line(colour = "black"),
     axis.line.y = element_line(colour = "black"))
 
-#simple barplot of npp difference between 2017 and mean
+#simple barplot of npp difference between 2022 and mean
 
 #import
 cper_npp_data <- read.csv('data/sgs/sgs_modis_npp_2.csv')
 
-#take the mean of all other non-drought years
+#take the mean of all other years; can get 2022 from dataframe
 cper_npp_data  %>%
   dplyr::filter(!year %in% 2022) %>%
   dplyr::summarise(mean_npp = round(mean(npp),2),
                    sd = round(sd(npp),2))
 
-
+#make dataframe for NPP inset, comparing mean to drought year
 cper_npp_impact <- data.frame(
   
   npp = c(128.92,231.45),
@@ -460,16 +382,16 @@ cper_npp_impact <- data.frame(
 #make barplot of this for inset
 cper_drought_barplot <- 
   ggplot(cper_npp_impact , aes(x = trt, y = npp)) +
-  stat_summary(geom = 'bar',fun = 'mean',color='black') +
+  stat_summary(geom = 'bar',fun = 'mean',color='black',width=.7) +
   geom_errorbar(aes(ymin = npp - sd, 
                     ymax = npp + sd), width = 0.05) +
   scale_y_continuous(expand=c(0,0),limit = c(0,293)) +
   xlab("") +
-  ylab(bquote('Net primary productivity ('*'g C'~ m^-2*')')) +
+  ylab(bquote('NPP ('*'g C'~ m^-2*')')) +
   theme(
     axis.text.x = element_text(color = 'black', size = 8),
-    axis.text.y = element_text(color = 'black', size = 8),
-    axis.title = element_text(color = 'black', size = 8),
+    axis.text.y = element_text(color = 'black', size = 9),
+    axis.title = element_text(color = 'black', size = 11),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
     legend.title = element_blank(),
@@ -485,67 +407,120 @@ cper_drought_barplot <-
 
 #make inset plot
 #try to make inset
-vp <- grid::viewport(width = 0.4, height = 0.35, x = 0.785,y=0.28)
+vp <- grid::viewport(width = 0.4, height = 0.35, x = 0.79,y=0.27)
 
 #executing the inset, you create a function the utlizes all the previous code
-full <- function() {
+full_cper <- function() {
   print(cper_drought_anom_plot)
   print(cper_drought_barplot, vp = vp)
 }
 
-cper_drought_phenology_plot <- full()
+cper_drought_phenology_plot <- full_cper()
 
 
-#try to add a daily GCC plot first
+#save
+png(height = 1700,width=2100,res=300,'figures/sgs_drought_impact_inset.png')
 
-cper_gcc_data <- 
-  read.csv('data/sgs/cperagm_GR_1000_1day.csv')
+full_cper()
 
-dry_normal_years <- cper_gcc_data %>%
-  dplyr::filter(year %in% c(2021,2022))  %>%
-  dplyr::select(year,doy,gcc_90)
+dev.off()
 
-dry_normal_years$doy_2 <- as.Date(dry_normal_years$doy)
+#remove
+rm(cper_gpp_data, cper_drought_anom_plot,cper_drought_barplot,cper_drought_phenology_plot,cper_npp_data,
+   cper_npp_impact,vp,full_cper,cper_mean)
 
-cper_gcc_plot <- ggplot(dry_normal_years,aes(doy_2,gcc_90,color=as.factor(year))) +
-  geom_point(size=0.25) +
-  geom_line(size=0.25) +
-  xlab('') +
-  ylab('Daily greenness (GCC)') +
+#-----------------------------------------------------------
+
+#### make plot for precip and temp dynamics for two sites ----
+
+
+ap_precip_temp <- read.csv('data/ap/daymet_precip_temp_ap.csv')
+
+#2017 identified as drought year example, near-equivalent to 2021
+ap_weather_2017 <- ap_precip_temp %>%
+  dplyr::filter(year == 2017)
+
+ap_temp_summaries <- ap_precip_temp %>%
+  dplyr::filter(!year %in% 2017) %>%
+  dplyr::group_by(yday) %>%
+  dplyr::mutate(mean_temp = (tmax..deg.c. + tmin..deg.c.)/2) %>%
+  dplyr::summarise(mean_temp = mean(mean_temp),
+                   mean_precip = mean(prcp..mm.day.)) %>%
+  dplyr::left_join(ap_weather_2017[c('yday','tmax..deg.c.','prcp..mm.day.')],join_by(yday)) %>%
+  dplyr::mutate(temp_anamoly = tmax..deg.c. - mean_temp,
+                precip_anamoly = prcp..mm.day. - mean_precip)
+
+#monthly total precip anoms
+ap_monthly_precip <- ap_temp_summaries %>% 
+  group_by(month = lubridate::floor_date(as.Date(yday), 'month')) %>%
+  summarize(monthly_precip_anoms = sum(precip_anamoly))
+
+#temp and precip drought anomaly plot for AP
+ap_temp_anom_plot<- 
+  ggplot(ap_temp_summaries, aes(x = as.Date(yday), y = temp_anamoly)) +
+  geom_hline(yintercept = 0) +
+  geom_line(linewidth=.5,color='red') +
+  # geom_smooth(method = 'loess',size=.1,color='red') +
+  xlab("") +
   scale_x_date(date_labels = "%b", breaks = "month") +
-  scale_color_manual(values=c('2021'='darkgreen','2022'='purple'),
-                     labels = c('Average','Drought')) +
-  scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
+  ylab(expression('Daily anomaly ('*~degree*C*')')) +
+  scale_y_continuous(sec.axis = sec_axis(~ . * 1, name = "Monthly anomaly (mm)")) +
+  geom_line(data = ap_monthly_precip,aes(x=as.Date(month),y = monthly_precip_anoms),
+            color='blue',linewidth=0.5) +
+  geom_point(data = ap_monthly_precip,aes(x=as.Date(month),y = monthly_precip_anoms),
+             size=1,pch=19) +
+  annotate('text',x=as.Date("1970-07-1"), y=-2.2, label="Long-term Average",size=2.5) +
+  ggtitle('Mixed-Grass Prairie') +
   theme(
-    axis.text.y = element_text(color='black',size=5),
-    axis.title.y = element_text(color='black',size=8.5),
-    axis.line.x = element_blank(),  # Removes the x-axis line
-    axis.text.x = element_blank(),  # Removes the x-axis labels (numbers/text)
-    axis.ticks.y = element_line(color='black'),
-    axis.ticks.x = element_blank(),
+    axis.text.x = element_text(color = 'black', size = 10,angle = 30),
+    axis.text.y = element_text(color = 'black', size = 10),
+    axis.title.y.left = element_text(color = "red"),
+    axis.title.y.right = element_text(color = "blue"),
+    axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
     legend.title = element_blank(),
-    legend.text = element_text(size=6.5),
-    legend.position = c(0.78,0.7),
-    strip.background =element_rect(fill="white"),
-    strip.text = element_text(size=5),
-    panel.background = element_rect(fill=NA),
-    panel.border = element_blank(), 
+    plot.title = element_text(hjust = 0.5),
+    legend.text = element_text(size = 5),
+    axis.title.y = element_text(size = 15),
+    legend.position = 'none',
+    strip.background = element_rect(fill = "white"),
+    strip.text = element_text(size = 15),
+    panel.background = element_rect(fill = NA),
+    panel.border = element_blank(),
+    axis.line.x = element_line(colour = "black"),
     axis.line.y = element_line(colour = "black"))
 
-#insert
-vp_2 <- grid::viewport(width = 0.27, height = 0.31, x = 0.245,y=0.5)
-
-#executing the inset, you create a function the utlizes all the previous code
-full_2 <- function() {
-  full()
-  print(cper_gcc_plot, vp = vp_2)
-}
-
-full_2()
+#get the MAP including the all years; doesn't change MAP estimate much relative approach below
+ap_precip_temp %>%
+  dplyr::mutate(mean_temp = (tmax..deg.c. + tmin..deg.c.)/2) %>%
+  group_by(year) %>%
+  dplyr::summarise(annual_precip = sum(prcp..mm.day.),
+                   mean_temp = mean(mean_temp)) %>%
+  dplyr::summarise(mean_nprecip = mean(annual_precip),
+                   mean_temp = mean(mean_temp))
 
 
-#make the temp-precip anomaly inset
+#calculate % reduction of dry year relative to all other years (excluding the dry year)
+#I decided to do it this way to be consistent with how anomalies are calculated in Figure 1.
+
+#get MAP for all years other than 2017, the drought year
+ap_precip_temp %>% group_by(year) %>%
+  summarise(annual_precip = sum(prcp..mm.day.)) %>%
+  dplyr::filter(!year %in% 2017) %>%
+  dplyr::summarise(mean_nprecip = mean(annual_precip))
+#341
+
+#get precip for driest year
+ap_precip_temp %>% group_by(year) %>%
+  summarise(annual_precip = sum(prcp..mm.day.)) %>%
+  dplyr::filter(year %in% 2017) 
+#176
+
+#49% reduction of 2017 from the average of all other years.
+(340.8-175.6)/340.8
+
+
+#make the temp-precip anomaly inset for shorgrass steppe (CPER)
 
 #import precip-temp ata
 cper_precip_temp_data <- read.csv('data/sgs/sgs_daymet_precip_temp_2.csv')
@@ -569,29 +544,31 @@ cper_monthly_precip <- cper_temp_summaries %>%
   group_by(month = lubridate::floor_date(as.Date(yday), 'month')) %>%
   summarise(monthly_precip_anoms = sum(precip_anamoly))
 
-#slightly re-do this one
-cper_temp_anom_plot_inset <- 
+#parallel plot as for AP
+cper_temp_anom_plot <- 
   ggplot(cper_temp_summaries, aes(x = as.Date(yday), y = temp_anamoly)) +
   geom_hline(yintercept = 0) +
-  geom_line(linewidth=0.25,color='red') +
+  geom_line(linewidth=0.5,color='red') +
   xlab("") +
   scale_x_date(date_labels = "%b", breaks = "month") +
   ylab(expression('Daily anomaly ('*~degree*C*')')) +
   scale_y_continuous(sec.axis = sec_axis(~ . * 1, name = "Monthly anomaly (mm)")) +
   geom_line(data = cper_monthly_precip,aes(x=as.Date(month),y = monthly_precip_anoms),
-            color='blue',linewidth=0.25) +
+            color='blue',linewidth=0.5) +
   geom_point(data = cper_monthly_precip,aes(x=as.Date(month),y = monthly_precip_anoms),
-             size=.5,pch=19) +
+             size=1,pch=19) +
+  ggtitle(expression(paste(C[4],'-Dominated Prairie'))) +
   theme(
-    axis.text.x = element_text(color = 'black', size = 5,angle = 30),
-    axis.text.y = element_text(color = 'black', size = 5),
+    axis.text.x = element_text(color = 'black', size = 10,angle = 30),
+    axis.text.y = element_text(color = 'black', size = 10),
     axis.title.y.left = element_text(color = "red"),
     axis.title.y.right = element_text(color = "blue"),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
     legend.title = element_blank(),
     legend.text = element_text(size = 5),
-    axis.title.y = element_text(size = 10),
+    plot.title = element_text(hjust = 0.5),
+    axis.title.y = element_text(size = 15),
     legend.position = 'none',
     strip.background = element_rect(fill = "white"),
     strip.text = element_text(size = 15),
@@ -600,34 +577,50 @@ cper_temp_anom_plot_inset <-
     axis.line.x = element_line(colour = "black"),
     axis.line.y = element_line(colour = "black"))
 
+#get the MAP including the all years
+cper_precip_temp_data %>% 
+  dplyr::mutate(mean_temp = (tmax..deg.c. + tmin..deg.c.)/2) %>%
+  group_by(year) %>%
+  dplyr::summarise(annual_precip = sum(prcp..mm.day.),
+                   mean_temp = mean(mean_temp)) %>%
+  dplyr::summarise(mean_nprecip = mean(annual_precip),
+                   mean_temp = mean(mean_temp))
 
-#insert second inset
-vp_3 <- grid::viewport(width = 0.32, height = 0.31, x = 0.27,y=0.25)
 
-#executing the inset, you create a function the utlizes all the previous code
-full_3 <- function() {
-  full_2()
-  print(cper_temp_anom_plot_inset , vp = vp_3)
-}
+#calculate % reduction of dry year relative to all other years (excluding the dry year)
+#I decided to do it this way to be consistent with how anomalies are calculated in Figure 1.
 
-full_3()
+#MAP for all years besides the drought
+cper_precip_temp_data %>% group_by(year) %>%
+  summarise(annual_precip = sum(prcp..mm.day.)) %>%
+  dplyr::filter(!year %in% 2022) %>%
+  dplyr::summarise(mean_nprecip = mean(annual_precip))
+#344.7
+
+#drought year
+cper_precip_temp_data %>% group_by(year) %>%
+  summarise(annual_precip = sum(prcp..mm.day.)) %>%
+  dplyr::filter(year %in% 2022) 
+#204.2
+
+#41% reduction of 2017 from the average of all other years.
+(344.7-204.2)/344.7
+
 
 #save
-png(height = 1700,width=2100,res=300,'figures/sgs_drought_impact_inset.png')
+png(height = 2000,width=1500,res=300,'figures/ap_sgs_precip_temp_V2.png')
 
-full_3()
+cowplot::plot_grid(ap_temp_anom_plot,cper_temp_anom_plot,ncol=1,
+                   labels = c('(a)','(b)'),label_fontface = "bold")
 
 dev.off()
 
-#remove
-rm(cper_drought_anom_plot,cper_drought_barplot,cper_drought_phenology_plot,
-   cper_gcc_data,cper_gcc_data,cper_mean,cper_monthly_precip,cper_npp_data,
-   cper_npp_impact,cper_precip_temp_data,cper_temp_anom_plot_inset,
-   cper_temp_summaries,cper_weather_2022,dry_normal_years,vp,vp_2,vp_3,
-   cper_gcc_plot,cper_gpp_data,full,full_2,full_3)
+#cleanup
+rm(ap_monthly_precip,ap_precip_temp,ap_temp_summaries,ap_weather_2017,cper_monthly_precip,
+   cper_precip_temp_data,cper_temp_summaries,cper_weather_2022,ap_temp_anom_plot,
+   cper_temp_anom_plot)
 
 #-----------------------------------------------------------
-
 #### make plots for entire northern great plains ecoregion ####
 
 #import raster stack
@@ -791,11 +784,14 @@ sd(ngp_df$percent_change_summer)
 
 #correlation spring gpp change and annual npp change. Truncate to 95th quantile for visualizing
 npp_spring_gpp_plot <- 
-  ggplot(compensation_look,aes(compensation_abs_2,drought_sens_abs,fill = mean_precip)) +
-  geom_point(alpha=.1,pch=21,size=1) +
+  ggplot(compensation_look,aes(compensation_abs_2,drought_sens_abs)) +
+  stat_summary_hex(fun = mean,
+                   bins=50,
+                   aes(z = mean_precip,fill=after_stat(value))) +
+  #geom_point(alpha=.1,pch=21,size=1) +
   scale_fill_scico('MAP (mm)',
                    palette = 'roma',direction = 1,midpoint = 409) +
-  geom_smooth(method = 'gam',color='black',size=0.5) +
+  geom_smooth(method = 'gam',color='black',linewidth=0.5) +
   #ylab(bquote('Annual drought sensitivity ('*'%'~ mm^-1*')')) +
   ylab(bquote('Annual drought sensitivity ('*'g C'~ m^-2~ mm^-1*')'))  +
   xlab ('Spring compensation') +
@@ -825,14 +821,14 @@ comp_inset$scenario <- factor(comp_inset$scenario,
 
 ngp_comp_barplot <- 
   ggplot(comp_inset, aes(x = scenario, y = percent)) +
-  stat_summary(geom = 'bar',fun = 'mean',color='black') +
+  stat_summary(geom = 'bar',fun = 'mean',color='black',width=0.75) +
   scale_y_continuous(expand=c(0,0),limit = c(0,51)) +
   xlab("") +
   ylab('Ocurrence (% of droughts)') +
   theme(
-    axis.text.x = element_text(color = 'black', size = 5),
-    axis.text.y = element_text(color = 'black', size = 5),
-    axis.title = element_text(color = 'black', size = 7),
+    axis.text.x = element_text(color = 'black', size = 5.25),
+    axis.text.y = element_text(color = 'black', size = 5.5),
+    axis.title = element_text(color = 'black', size = 7.5),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
     legend.title = element_blank(),
@@ -878,4 +874,6 @@ rm(comp_inset,compensation_look,na,ngp_comp_barplot,ngp_comp_plot,ngp_df,
    ngp_spring,ngp_spring_summer,ngp_spring_summer_plot,
    ngp_stack,ngp_summer,npp_spring_gpp_plot,vp,Albers,full)
 
+
+#-----------------------------------------------------------
 #---------------done----------------------------------------
