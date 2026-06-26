@@ -10,6 +10,7 @@ rm(library_vector)
 #remotes::install_version("ggplot2", version = "3.3.6")
 
 #---------------code----------------------------------------
+
 #### make plot for cross-biome analysis of phenocam greenness data ####
 
 
@@ -94,11 +95,9 @@ phenocam_main_impact_inset_plot <- ggplot(phenocam_drought_phenology_db_gr_tempe
   stat_summary(fun = 'mean',geom = 'point',size=.05,alpha=0.5) +
   xlab('') +
   ylab('Drought impact') +
-  #scale_x_date(date_labels = "%b", breaks = "month") +
   scale_x_date(
     date_breaks = "1 month",
     labels = function(x) substr(format(x, "%b"), 1, 1)) +
-  #scale_x_discrete(labels = single_letters)  +
   theme(
     axis.text.x = element_text(color = 'black', size = 7), #angle = 40
     axis.text.y = element_text(color='black',size=8),
@@ -481,7 +480,6 @@ ap_temp_anom_plot<-
   ggplot(ap_temp_summaries, aes(x = as.Date(yday), y = temp_anamoly)) +
   geom_hline(yintercept = 0) +
   geom_line(linewidth=.5,color='red') +
-  # geom_smooth(method = 'loess',size=.1,color='red') +
   xlab("") +
   scale_x_date(date_labels = "%b", breaks = "month") +
   ylab(expression('Daily anomaly ('*~degree*C*')')) +
@@ -642,6 +640,7 @@ rm(ap_monthly_precip,ap_precip_temp,ap_temp_summaries,ap_weather_2017,cper_month
    cper_temp_anom_plot)
 
 #-----------------------------------------------------------
+
 #### make plots for entire northern great plains ecoregion ####
 
 #import raster stack
@@ -661,7 +660,7 @@ Albers <-
   )
 
 #try a faceting approach
-head(ngp_spring,1)
+#head(ngp_spring,1)
 
 #get these all into one dataframe with season as a variable
 ngp_spring <- ngp_spring %>% rename(percent_change = percent_change_spring)
@@ -734,8 +733,8 @@ ngp_df %>%
   summarise(number = length(percent_change_spring))
 
 #summary of climate across the region
-summary(ngp_df$mean_precip)
-summary(ngp_df$mean_temp)
+# summary(ngp_df$mean_precip)
+# summary(ngp_df$mean_temp)
 
 #50% (49.6) of pixels experience (+spr. -sum.)
 51941/104576
@@ -783,8 +782,8 @@ comp_inset <-
   )
 
 #compare spatial variabilty in spring versus summer responses
-sd(ngp_df$percent_change_spring)
-sd(ngp_df$percent_change_summer)
+# sd(ngp_df$percent_change_spring)
+# sd(ngp_df$percent_change_summer)
 
 #filter to when summer gpp is reduced ot isolate spring effect
 compensation_look <- ngp_df %>%
@@ -795,15 +794,16 @@ compensation_look <- ngp_df %>%
   dplyr::filter(compensation_abs_2 <= 2) #right-truncate because values go into the thousands 
 
 #find value to truncate to for the figure 
-quantile(compensation_look$compensation_abs_2,0.99)
+# quantile(compensation_look$compensation_abs_2,0.99)
 
 #note differences mean and range of change and there a higher spatial variation in spring responses
-summary(ngp_df$percent_change_spring)
-summary(ngp_df$percent_change_summer)
+# summary(ngp_df$percent_change_spring)
+# summary(ngp_df$percent_change_summer)
 
-sd(ngp_df$percent_change_spring)
-sd(ngp_df$percent_change_summer)
+# sd(ngp_df$percent_change_spring)
+# sd(ngp_df$percent_change_summer)
 
+#quick visual of differences in the distribution of spring versus summer impacts
 # hist(ngp_df$percent_change_spring,col='red')
 # hist(ngp_df$percent_change_summer,add=TRUE,col='blue')
 
@@ -813,11 +813,9 @@ npp_spring_gpp_plot <-
   stat_summary_hex(fun = mean,
                    bins=50,
                    aes(z = mean_precip,fill=after_stat(value))) +
-  #geom_point(alpha=.1,pch=21,size=1) +
   scale_fill_scico('MAP (mm)',
                    palette = 'roma',direction = 1,midpoint = 409) +
   geom_smooth(method = 'gam',color='black',linewidth=0.5) +
-  #ylab(bquote('Annual drought sensitivity ('*'%'~ mm^-1*')')) +
   ylab(bquote('Annual drought sensitivity ('*'g C'~ m^-2~ mm^-1*')'))  +
   xlab ('Spring compensation') +
   theme(
@@ -901,4 +899,5 @@ rm(comp_inset,compensation_look,na,ngp_comp_barplot,ngp_comp_plot,ngp_df,
 
 
 #-----------------------------------------------------------
+
 #---------------done----------------------------------------
