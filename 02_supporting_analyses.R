@@ -1,4 +1,7 @@
 
+library(tidyverse)
+library(terra)
+
 #New analysis for reviewer replies and supporting figures.
 
 #significance tests for % change in spring GPP during drought ------
@@ -324,3 +327,198 @@ previous_yr_weather_df %>%
 
 #cleanup
 rm(ngp_df_multi_year_look,previous_yr_weather_df)
+
+#-----------------------------------------------------------
+#seasonality look ----
+
+#cper
+cper_seasonality <- read.csv('data/sgs/sgs_daymet_precip_temp_2.csv') %>%
+  dplyr::mutate(month_val = lubridate::month(as.Date(yday))) %>%
+  dplyr::group_by(year,month_val) %>%
+    dplyr::summarise(monthly_precip = sum(prcp..mm.day.),
+                     monthly_temp = mean(tmax..deg.c.))  %>%
+  dplyr::group_by(month_val) %>%
+  dplyr::summarise(monthly_precip = mean(monthly_precip),
+                   monthly_temp = mean(monthly_temp))
+
+cor(cper_seasonality$monthly_precip,cper_seasonality$monthly_temp,method='spearman')
+#0.84
+
+#NGP/ap
+ap_seasonality <- read.csv('data/ap/daymet_precip_temp_ap.csv') %>%
+  dplyr::mutate(month_val = lubridate::month(as.Date(yday))) %>%
+  dplyr::group_by(year,month_val) %>%
+  dplyr::summarise(monthly_precip = sum(prcp..mm.day.),
+                   monthly_temp = mean(tmax..deg.c.)) %>%
+  dplyr::group_by(month_val) %>%
+  dplyr::summarise(monthly_precip = mean(monthly_precip),
+                   monthly_temp = mean(monthly_temp))
+  
+
+cor(ap_seasonality$monthly_precip,ap_seasonality$monthly_temp,method='spearman')
+plot(ap_seasonality$monthly_precip,ap_seasonality$monthly_temp,method='spearman')
+#0.89
+
+#-----------------------------------------------------------
+#spatial block bootstrapping ------
+
+#See if inferences change when done on a randomized subset (stratified by drought year)
+
+#import raster stack
+ngp_stack_bootstrapping <- terra::rast('data/ngp/ngp_raster_stack.tif') %>%
+  as.data.frame(ngp_stack,xy=T) %>%
+  dplyr::mutate(drought_sens = (((mean_npp - drought_npp)/mean_npp)*100)/(mean_precip - drought_precip)) %>%
+  dplyr::mutate(drought_sens_abs = ((mean_npp - drought_npp))/(mean_precip - drought_precip)) %>%
+  dplyr::filter(percent_change_summer < 0 & percent_change_spring > 0) %>%
+  dplyr::mutate(compensation_abs = ((drought_spring_gpp - mean_spring_gpp) - (drought_summer_gpp - mean_summer_gpp))*.01) %>%
+  dplyr::mutate(compensation_rel = percent_change_spring - percent_change_summer) %>%
+  dplyr::mutate(compensation_abs_2 = abs(((drought_spring_gpp - mean_spring_gpp)/(drought_summer_gpp - mean_summer_gpp)))) %>%
+  dplyr::filter(compensation_abs_2 <= 2) %>%
+  dplyr::mutate(drought_year = as.integer(drought_year)) %>%
+  dplyr::select(x,y,drought_year,mean_precip,mean_temp,compensation_abs_2,drought_sens)
+
+#lists to store iterations
+cor_list_temp <- list()
+cor_list_precip <- list()
+cor_list_comp <- list()
+
+for(i in 1:10000){
+
+compensation_iteration <- splitstackshape::stratified(indt = ngp_stack_bootstrapping,group = "drought_year", size = 0.1)
+
+cor_list_precip[[i]] <- cor(compensation_iteration$mean_precip,compensation_iteration$drought_sens,method = 'spearman')
+cor_list_comp[[i]] <- cor(compensation_iteration$compensation_abs_2,compensation_iteration$drought_sens,method = 'spearman')
+cor_list_temp[[i]] <- cor(compensation_iteration$mean_temp,compensation_iteration$drought_sens,method = 'spearman')
+
+rm(compensation_iteration)
+
+}
+
+
+#turn to dataframes
+cor_list_precip_df <- data.frame(do.call('rbind',cor_list_precip)) %>%
+  dplyr::mutate(var = 'Mean annual precipitation') %>%
+  dplyr::rename(cor = do.call..rbind...cor_list_precip.)
+
+cor_list_comp_df <- data.frame(do.call('rbind',cor_list_comp)) %>%
+  dplyr::mutate(var = 'Spring compensation') %>%
+  dplyr::rename(cor = do.call..rbind...cor_list_comp.)
+
+cor_list_temp_df <- data.frame(do.call('rbind',cor_list_temp)) %>%
+  dplyr::mutate(var = 'Mean annual temperature') %>%
+  dplyr::rename(cor = do.call..rbind...cor_list_temp.)
+
+cor_list_df <- rbind(cor_list_precip_df,cor_list_comp_df,cor_list_temp_df)
+
+#remove
+rm(cor_list_precip_df,cor_list_comp_df,cor_list_temp_df,
+   cor_list_precip,cor_list_comp,cor_list_temp)
+
+#plot it out
+#first make a df for the 'global' correlation estimate that does not
+#randomize/subset to address spatial autocorrelation/year effects
+
+vline_data <- data.frame(
+  var= c("Mean annual precipitation", "Spring compensation", 
+         "Mean annual temperature"),
+  intercept = c(0.15, -.74, 0.33)
+)
+
+#save
+png(height = 1000,width=3100,res=300,'figures/correlation_boostraps.png')
+
+ggplot(cor_list_df,aes(x = cor)) +
+  facet_wrap(~var,scales = 'free') +
+  geom_histogram(fill = 'white',color = 'black') +
+  geom_vline(data = vline_data, aes(xintercept = intercept), 
+             color = "red", size = 1) +
+  xlab('Correlation with drought sensitivity') +
+  ylab('Count') +
+  scale_y_continuous(expand = c(0, 0)) +
+  theme(
+    axis.text.x = element_text(color = 'black', size = 9),
+    axis.text.y = element_text(color = 'black', size = 11),
+    axis.title = element_text(color = 'black', size = 15),
+    axis.ticks = element_line(color = 'black'),
+    legend.key = element_blank(),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 5),
+    legend.position = 'none',
+    strip.background = element_rect(fill = "white"),
+    strip.text = element_text(size = 10),
+    panel.background = element_rect(fill = NA),
+    panel.border = element_blank(),
+    axis.line.x = element_line(colour = "black"),
+    axis.line.y = element_line(colour = "black"))
+
+
+dev.off()
+
+#cleanup
+rm(vline_data,cor_list_df,i)
+
+#now look at correlations within each drought year
+within_drought_years <- ngp_stack_bootstrapping %>%
+  dplyr::group_by(drought_year) %>%
+  summarise(cor_precip = cor(mean_precip,drought_sens, method = 'spearman'),
+            cor_temp = cor(mean_temp,drought_sens, method = 'spearman'),
+            cor_comp = cor(compensation_abs_2,drought_sens),
+            `Number of pixels` = length(drought_year),.groups = "drop") %>%
+  tidyr::pivot_longer(cols = starts_with("cor_"),
+                      names_to = "var",
+                      values_to = "correlation") %>%
+  dplyr::mutate(var = case_match(
+    var,
+    "cor_precip" ~"Mean annual precipitation",
+    "cor_temp" ~"Mean annual temperature",
+    "cor_comp" ~"Spring compensation",
+    
+  )) %>%
+  dplyr::mutate(var = factor(var,levels = c("Spring compensation",
+                                            "Mean annual precipitation",
+                                            "Mean annual temperature"))) %>%
+  dplyr::mutate(correlation = round(correlation,2))
+
+#first look
+summary(within_drought_years)
+
+outlier <- within_drought_years[within_drought_years$correlation == 0.58, ]
+
+#save
+png(height = 1500,width=2000,res=300,'figures/correlation_each_drought_year.png')
+
+within_drought_years %>% dplyr::filter(correlation < 0.58) %>% #remove then re-add as outlier
+ggplot(aes(x = var, y = correlation)) +
+  geom_hline(yintercept = 0) +
+  #geom_point(aes(size=no_pixels),alpha=.2,geom_jitter(width = 0.01)) +
+  geom_boxplot(outliers = F) + 
+  geom_jitter(width = 0.05,aes(size=`Number of pixels`),alpha=.2) +
+  xlab('') +
+  geom_point(data = outlier, aes(x = var, y = correlation), color = "red", size =1.5,alpha=.2) +
+  ylab('Correlation with drought sensitivity') +
+  theme(
+    axis.text.x = element_text(color = 'black', size = 11),
+    axis.text.y = element_text(color = 'black', size = 11),
+    axis.title = element_text(color = 'black', size = 15),
+    axis.ticks = element_line(color = 'black'),
+    legend.key = element_blank(),
+    #legend.title = element_blank(),
+    legend.text = element_text(size = 10),
+    legend.position = 'top',
+    #legend.position = c(0.5,0.9),
+    strip.background = element_rect(fill = "white"),
+    strip.text = element_text(size = 10),
+    panel.background = element_rect(fill = NA),
+    panel.border = element_blank(),
+    axis.line.x = element_line(colour = "black"),
+    axis.line.y = element_line(colour = "black"))
+
+
+dev.off()
+
+#cleanup
+rm(ngp_stack_bootstrapping,outlier,within_drought_years)
+
+
+#-----------------------------------------------------------
+
