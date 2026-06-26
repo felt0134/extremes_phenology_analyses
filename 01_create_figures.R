@@ -1,5 +1,5 @@
 
-#code for making main figures
+#code for making main text figures
 
 #load packages
 library_vector <- c('tidyverse','terra','scico')
