@@ -2,7 +2,7 @@
 library(tidyverse)
 library(terra)
 
-#New analysis for reviewer replies and supporting figures.
+#Supporting analyses and figures.
 
 #significance tests for % change in spring GPP during drought ------
 
@@ -28,7 +28,6 @@ p_val_list[[i]] <- test$p.value
 
 #quick look at output (% change and P values)
 hist(ngp_sample$percent_change_spring)
-
 pva_vec <- unlist(p_val_list)
 hist(pva_vec)
 mean(pva_vec)
@@ -123,7 +122,6 @@ drought_year_map <- ggplot() +
       axis.ticks = element_blank(),
       legend.key = element_blank(),
       legend.key.width = unit(2, "cm"),
-      #legend.title = element_blank(),
       legend.position = 'top',
       strip.background = element_rect(fill = "white"),
       strip.text = element_text(size = 10),
@@ -314,8 +312,8 @@ previous_yr_weather_df <- read.csv('data/ngp/multi_year_look/previous_yr_weather
   dplyr::mutate(filter_metric = drought_perc_reduc + 10) #only consider years within 10% of drought yr
 
 #quick look
-hist(previous_yr_weather_df$prev_yr_perc_reduc)
-hist(previous_yr_weather_df$drought_perc_redu)
+# hist(previous_yr_weather_df$prev_yr_perc_reduc)
+# hist(previous_yr_weather_df$drought_perc_redu)
 
 #see how many sites were multi-yr droughts, as defined here:
 previous_yr_weather_df %>%
@@ -329,6 +327,7 @@ previous_yr_weather_df %>%
 rm(ngp_df_multi_year_look,previous_yr_weather_df)
 
 #-----------------------------------------------------------
+
 #seasonality look ----
 
 #cper
@@ -360,7 +359,8 @@ plot(ap_seasonality$monthly_precip,ap_seasonality$monthly_temp,method='spearman'
 #0.89
 
 #-----------------------------------------------------------
-#spatial block bootstrapping ------
+
+#spatial block bootstrapping and drought-year correlations ------
 
 #See if inferences change when done on a randomized subset (stratified by drought year)
 
@@ -487,10 +487,9 @@ outlier <- within_drought_years[within_drought_years$correlation == 0.58, ]
 #save
 png(height = 1500,width=2000,res=300,'figures/correlation_each_drought_year.png')
 
-within_drought_years %>% dplyr::filter(correlation < 0.58) %>% #remove then re-add as outlier
+within_drought_years %>% dplyr::filter(correlation < 0.58) %>% #remove then re-add the outlier
 ggplot(aes(x = var, y = correlation)) +
   geom_hline(yintercept = 0) +
-  #geom_point(aes(size=no_pixels),alpha=.2,geom_jitter(width = 0.01)) +
   geom_boxplot(outliers = F) + 
   geom_jitter(width = 0.05,aes(size=`Number of pixels`),alpha=.2) +
   xlab('') +
@@ -502,10 +501,8 @@ ggplot(aes(x = var, y = correlation)) +
     axis.title = element_text(color = 'black', size = 15),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
-    #legend.title = element_blank(),
     legend.text = element_text(size = 10),
     legend.position = 'top',
-    #legend.position = c(0.5,0.9),
     strip.background = element_rect(fill = "white"),
     strip.text = element_text(size = 10),
     panel.background = element_rect(fill = NA),
@@ -522,3 +519,5 @@ rm(ngp_stack_bootstrapping,outlier,within_drought_years)
 
 #-----------------------------------------------------------
 
+
+#---------------done----------------------------------------
