@@ -3,6 +3,7 @@
 #custom functions used in the analyses
 
 #---------------code----------------------------------------
+
 # Downloading daymet climate data 1980-2023 ####
 
 get_daymet <- function(temp_lat,temp_lon){
@@ -17,9 +18,6 @@ precip_temp <- daymetr::download_daymet(
 ) %>%
   
   .$data %>%
-  
-  # #--- get date from day of the year ---#
-  # mutate(date = as.Date(paste(year, yday, sep = "-"), "%Y-%j"))
   
   dplyr::mutate(mean_temp = (tmax..deg.c. + tmin..deg.c.)/2) %>%
   dplyr::group_by(year) %>%
@@ -62,6 +60,7 @@ return(monthly_precip_temp_slope)
 
 
 #-----------------------------------------------------------
+
 # Get initial sites list ----
 
 sites_filtered_function <- function(){
@@ -81,6 +80,7 @@ sites_filtered <- sites %>%
 
 
 #-----------------------------------------------------------
+
 # function to create raster stack from large dataframe ####
 create_raster <- function(data,var){
   
@@ -133,4 +133,6 @@ create_raster <- function(data,var){
   return(df_trimmed_raster_resampled_masked)
   
 }
+#-----------------------------------------------------------
+
 #---------------done----------------------------------------
