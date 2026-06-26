@@ -1,0 +1,27 @@
+#
+# 1-day summary product timeseries for flagstaff
+#
+# Site: flagstaff
+# Veg Type: EN
+# ROI ID Number: 1001
+# Lat: 35.17961521
+# Lon: -111.60490323
+# Elev: 6983
+# UTC Offset: -7
+# Image Count Threshold: 1
+# Aggregation Period: 1
+# Solar Elevation Min: 10.0
+# Time of Day Min: 00:00:00
+# Time of Day Max: 23:59:59
+# ROI Brightness Min: 100
+# ROI Brightness Max: 665
+# Creation Date: 2024-05-15
+# Creation Time: 14:18:01
+# Update Date: 2025-06-27
+# Update Time: 11:20:03
+# Final Processing Date:: 2025-06-27
+# Final Processing Time:: 15:18:11
+#
+date,year,doy,image_count,midday_filename,midday_r,midday_g,midday_b,midday_gcc,midday_rcc,r_mean,r_std,g_mean,g_std,b_mean,b_std,gcc_mean,gcc_std,gcc_50,gcc_75,gcc_90,rcc_mean,rcc_std,rcc_50,rcc_75,rcc_90,max_solar_elev,snow_flag,outlierflag_gcc_mean,outlierflag_gcc_50,outlierflag_gcc_75,outlierflag_gcc_90,smooth_gcc_mean,smooth_gcc_50,smooth_gcc_75,smooth_gcc_90,smooth_rcc_mean,smooth_rcc_50,smooth_rcc_75,smooth_rcc_90,smooth_ci_gcc_mean,smooth_ci_gcc_50,smooth_ci_gcc_75,smooth_ci_gcc_90,smooth_ci_rcc_mean,smooth_ci_rcc_50,smooth_ci_rcc_75,smooth_ci_rcc_90,int_flag,dayl..s.,prcp..mm.day.,srad..W.m.2.,swe..kg.m.2.,tmax..deg.c.,tmin..deg.c.,vp..Pa.
+2023-12-30,2023,364,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.34232,0.3436,0.34458,0.34512,0.42294,0.42363,0.42814,0.43519,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,1,34771.22,0,294.33,0,9.75,-7.29,275.56
+2023-12-31,2023,365,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.34258,0.34376,0.34478,0.34514,0.4227,0.42333,0.42816,0.43489,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,1,34799.52,0,241.52,0,5.06,-7.37,306.67

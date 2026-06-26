@@ -1,0 +1,25 @@
+#
+# 1-day summary product timeseries for segabluechutepj3
+#
+# Site: segabluechutepj3
+# Veg Type: EN
+# ROI ID Number: 1000
+# Lat: 35.5876
+# Lon: -111.9712
+# Elev: 1931
+# UTC Offset: -7
+# Image Count Threshold: 1
+# Aggregation Period: 1
+# Solar Elevation Min: 10.0
+# Time of Day Min: 00:00:00
+# Time of Day Max: 23:59:59
+# ROI Brightness Min: 100
+# ROI Brightness Max: 665
+# Creation Date: 2024-08-26
+# Creation Time: 12:01:36
+# Update Date: 2025-06-29
+# Update Time: 12:06:10
+# Final Processing Date:: 2025-06-30
+# Final Processing Time:: 11:51:14
+#
+date,year,doy,image_count,midday_filename,midday_r,midday_g,midday_b,midday_gcc,midday_rcc,r_mean,r_std,g_mean,g_std,b_mean,b_std,gcc_mean,gcc_std,gcc_50,gcc_75,gcc_90,rcc_mean,rcc_std,rcc_50,rcc_75,rcc_90,max_solar_elev,snow_flag,outlierflag_gcc_mean,outlierflag_gcc_50,outlierflag_gcc_75,outlierflag_gcc_90,smooth_gcc_mean,smooth_gcc_50,smooth_gcc_75,smooth_gcc_90,smooth_rcc_mean,smooth_rcc_50,smooth_rcc_75,smooth_rcc_90,smooth_ci_gcc_mean,smooth_ci_gcc_50,smooth_ci_gcc_75,smooth_ci_gcc_90,smooth_ci_rcc_mean,smooth_ci_rcc_50,smooth_ci_rcc_75,smooth_ci_rcc_90,int_flag,dayl..s.,prcp..mm.day.,srad..W.m.2.,swe..kg.m.2.,tmax..deg.c.,tmin..deg.c.,vp..Pa.
