@@ -12,9 +12,9 @@ rm(library_vector)
 
 # Multi-site phenocam GCC data ####
 
-#notes:
+#notes on selecting/filtering criteria:
 # focusing on 'temperate' sites with a clear spring and summer season
-# want least five years of data
+# want at least five years of data
 # want North American sites in order to use daymet climate data
 # want to be able to know the 5th and 95th percentile of precip and temp
 # so that we can use them as threshold for identifying drought years
@@ -206,7 +206,7 @@ for(i in file[777:length(file)]){
 #notes:
 #gpp and npp data aggregated to 1 km to match daymet
 
-# American Prairie Sun Prairie in north-central Montana, USA in Missouri Breaks
+#American Prairie, Sun Prairie in north-central Montana, USA in Missouri Breaks
 temp_lat_ap <- 47.768253
 temp_lon_ap <- -107.699735
 
@@ -298,9 +298,9 @@ write.csv(site_gpp_ap_2,'data/ap/ap_modis_gpp_2.csv')
 
 # MODIS GPP, NPP, and Daymet climate data for northern CO, MT, USA location ####
 
-#This is effectively the same as the prior code fold for MT, USA
+#This is effectively the same as the prior code fold for MT, USA with different coords
 
-# cper coordinates
+#Central Plains Experimental Range (cper) coordinates in northern Colorado
 temp_lat_cper <- 40.8402
 temp_lon_cper <- -104.7672
 
@@ -397,6 +397,8 @@ write.csv(site_gpp_cper_2,'data/sgs/sgs_modis_gpp_2.csv')
 
 # Northern great plains raster stack ----
 
+#note that the data used here are from another project
+
 #land cover data
 igbp_grasslands <- readRDS("data/ngp/Filtering_Drought_Set.rds")
 
@@ -436,6 +438,9 @@ terra::writeRaster(ngp_stack,'data/ngp/ngp_raster_stack.tif')
 #remove
 rm(igbp_grasslands,master_df,minimum_year_df,ngp_stack,temp_raster,
    temp_raster_list,column_vec,i)
+
+
+#-----------------------------------------------------------
 
 
 #---------------done----------------------------------------
