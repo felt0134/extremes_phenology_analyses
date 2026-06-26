@@ -53,6 +53,23 @@ rm(phenocam_drought_phenology_db_gr)
 #spring: 61-152
 #summer: 153-244
 
+#take a look at site variability in grasslands versus forests 
+# phenocam_variability_look_season <- phenocam_drought_phenology_db_gr_temperate %>%
+#   dplyr::filter(doy > 60 & doy < 245) %>%
+#   mutate(season = case_when(
+#     doy > 60 & doy < 153 ~ 'spring',
+#     doy > 152 & doy < 245 ~ 'summer'
+#   )) %>%
+#   #dplyr::select(doy,vegetation,season,drought_impact_absolute,drought_impact_rel) %>%
+#   dplyr::group_by(site,season,vegetation) %>%
+#   dplyr::summarise(total_gcc_drought = sum(smooth_gcc_90_drought),
+#                    total_gcc_mean = sum(smooth_gcc_90_mean)) %>%
+#   dplyr::mutate(perc_change = ((total_gcc_drought - total_gcc_mean)/total_gcc_mean)*100) %>%
+#   dplyr::group_by(vegetation,season) %>%
+#   dplyr::summarise(sd_impact = sd(perc_change),
+#                    mean_impact = mean(perc_change))
+  
+
 #number of unique sites to analyze 
 #length(unique(phenocam_drought_phenology_db_gr_temperate$site))
 
@@ -77,12 +94,16 @@ phenocam_main_impact_inset_plot <- ggplot(phenocam_drought_phenology_db_gr_tempe
   stat_summary(fun = 'mean',geom = 'point',size=.05,alpha=0.5) +
   xlab('') +
   ylab('Drought impact') +
-  scale_x_date(date_labels = "%b", breaks = "month") +
+  #scale_x_date(date_labels = "%b", breaks = "month") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = function(x) substr(format(x, "%b"), 1, 1)) +
+  #scale_x_discrete(labels = single_letters)  +
   theme(
-    axis.text.x = element_text(color = 'black', size = 5,angle = 30),
-    axis.text.y = element_text(color='black',size=5),
-    axis.title.x = element_text(color='black',size=7),
-    axis.title.y = element_text(color='black',size=7),
+    axis.text.x = element_text(color = 'black', size = 7), #angle = 40
+    axis.text.y = element_text(color='black',size=8),
+    axis.title.x = element_text(color='black',size=8),
+    axis.title.y = element_text(color='black',size=10),
     axis.ticks = element_line(color='black'),
     legend.key = element_blank(),
     legend.title = element_text(size=10),
@@ -100,10 +121,10 @@ phenocam_main_impact_inset_plot <- ggplot(phenocam_drought_phenology_db_gr_tempe
 phenocam_impact_by_veg_plot <- 
   ggplot(phenocam_drought_phenology_db_gr_temperate,aes(doy_2,drought_impact_absolute, color=vegetation)) +
   geom_hline(yintercept = 0) +
-  annotate('text',x=as.Date("1970-08-01"), y=0.00025, label="Multi-year Average",size=2.1) +
+  annotate('text',x=as.Date("1970-08-01"), y=0.00040, label="Average",size=3.5) +
   scale_colour_manual(values=c('DB'='blue','GR'='red'),
                       labels=c('DB'='Forest','GR'='Grassland')) +
-  stat_summary(fun = 'mean',geom = 'point',size=.05) +
+  stat_summary(fun = 'mean',geom = 'point',size=.1) +
   geom_smooth(method = 'loess') +
   xlab('') +
   ylab('Drought impact to greenness') +
@@ -113,7 +134,7 @@ phenocam_impact_by_veg_plot <-
   scale_x_date(date_labels = "%b", breaks = "month") +
   geom_hline(yintercept = 0) +
   theme(
-    axis.text.x = element_text(color='black',size=11),
+    axis.text.x = element_text(color='black',size=14),
     axis.text.y = element_text(color='black',size=11),
     axis.title.x = element_text(color='black',size=15),
     axis.title.y = element_text(color='black',size=15),
@@ -131,7 +152,7 @@ phenocam_impact_by_veg_plot <-
     axis.line.y = element_line(colour = "black"))
 
 #make inset
-vp <- grid::viewport(width = 0.3, height = 0.3, x = 0.27,y=0.25)
+vp <- grid::viewport(width = 0.36, height = 0.36, x = 0.297,y=0.28)
 
 #executing the inset, you create a function the utlizes all the previous code
 full <- function() {
@@ -222,8 +243,8 @@ ap_drought_anom_plot <-
     expression("Drought impact to carbon uptake "(g~C~m^-2~'8 days'^-1))) +
   annotate('text',x=as.Date("2017-04-23"), y=0.39, label="Long-term Average",size=3.5) +
   theme(
-    axis.text.x = element_text(color = 'black', size = 11),
-    axis.text.y = element_text(color = 'black', size = 11),
+    axis.text.x = element_text(color = 'black', size = 14),
+    axis.text.y = element_text(color = 'black', size = 12),
     axis.title = element_text(color = 'black', size = 15),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
@@ -341,8 +362,8 @@ cper_drought_anom_plot <-
     expression("Drought impact to carbon uptake "(g~C~m^-2~'8 days'^-1))) +
   annotate('text',x=as.Date("2022-06-23"), y=0.39, label="Long-term Average",size=3.5) +
   theme(
-    axis.text.x = element_text(color = 'black', size = 11),
-    axis.text.y = element_text(color = 'black', size = 11),
+    axis.text.x = element_text(color = 'black', size = 14),
+    axis.text.y = element_text(color = 'black', size = 12),
     axis.title = element_text(color = 'black', size = 15),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
@@ -407,7 +428,7 @@ cper_drought_barplot <-
 
 #make inset plot
 #try to make inset
-vp <- grid::viewport(width = 0.4, height = 0.35, x = 0.79,y=0.27)
+vp <- grid::viewport(width = 0.4, height = 0.35, x = 0.79,y=0.28)
 
 #executing the inset, you create a function the utlizes all the previous code
 full_cper <- function() {
@@ -712,6 +733,10 @@ ngp_df %>%
   dplyr::filter(percent_change_spring > 0 & percent_change_summer < 0) %>%
   summarise(number = length(percent_change_spring))
 
+#summary of climate across the region
+summary(ngp_df$mean_precip)
+summary(ngp_df$mean_temp)
+
 #50% (49.6) of pixels experience (+spr. -sum.)
 51941/104576
 
@@ -826,9 +851,9 @@ ngp_comp_barplot <-
   xlab("") +
   ylab('Ocurrence (% of droughts)') +
   theme(
-    axis.text.x = element_text(color = 'black', size = 5.25),
-    axis.text.y = element_text(color = 'black', size = 5.5),
-    axis.title = element_text(color = 'black', size = 7.5),
+    axis.text.x = element_text(color = 'black', size = 6.5),
+    axis.text.y = element_text(color = 'black', size = 7),
+    axis.title = element_text(color = 'black', size = 8),
     axis.ticks = element_line(color = 'black'),
     legend.key = element_blank(),
     legend.title = element_blank(),
@@ -844,7 +869,7 @@ ngp_comp_barplot <-
 
 #make inset plot
 #try to make inset
-vp <- grid::viewport(width = 0.44, height = 0.39, x = 0.72,y=0.75)
+vp <- grid::viewport(width = 0.51, height = 0.42, x = 0.72,y=0.76)
 
 #executing the inset, you create a function that uses all the previous code
 full <- function() {
